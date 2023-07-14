@@ -12,6 +12,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -23,9 +24,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -41,6 +44,7 @@ import javax.swing.event.ChangeListener;
  * @author viljinsky
  */
 enum Direction {
+    
     WE, NS, EW, SN;
 
     public Direction left() {
@@ -151,7 +155,7 @@ public class Graph extends ArrayList<Node> {
 
     public boolean drawEdge = true;
 
-    List<Edge> edges = new ArrayList<>();
+    protected List<Edge> edges = new ArrayList<>();
 
     @Override
     public void clear() {
@@ -168,26 +172,6 @@ public class Graph extends ArrayList<Node> {
         return null;
     }
 
-    public void paint(Graphics g) {
-
-        if(drawEdge){
-        g.setColor(edgeColor);
-        for (Edge e : edges) {
-            Point p1 = new Point(e.node1.x * edge_size + xOffset, e.node1.y * edge_size + yOffset);
-            Point p2 = new Point(e.node2.x * edge_size + xOffset, e.node2.y * edge_size + yOffset);
-            g.drawLine(p1.x, p1.y, p2.x, p2.y);
-        }
-        }
-        if(drawNode){
-        g.setColor(nodeColor);
-        for(Node n:this){
-            Rectangle r = nodeBound(n);
-            g.fillRect(r.x+xOffset,r.y+yOffset,r.width,r.height);
-        }
-        }
-        
-    }
-
     Node node(int col, int row) {
         for (Node node : this) {
             if (node.x == col && node.y == row) {
@@ -200,16 +184,40 @@ public class Graph extends ArrayList<Node> {
     Rectangle nodeBound(Node node) {
         return new Rectangle(node.x * edge_size - node_size / 2, node.y * edge_size - node_size / 2, node_size, node_size);
     }
+    
+    Point pointToView(Point p){
+        return new Point(p.x * edge_size+xOffset, p.y * edge_size+yOffset);
+    }
 
     Rectangle edgeBound(Edge edge) {
-        Point p1 = new Point(edge.node1.x * edge_size, edge.node1.y * edge_size);
-        Point p2 = new Point(edge.node2.x * edge_size, edge.node2.y * edge_size);
+        Point p1 = pointToView(edge.node1) ;
+        Point p2 = pointToView(edge.node2);
         int x = Math.min(p1.x, p2.x) - node_size / 2 + (p1.y == p2.y ? node_size : 0);
         int y = Math.min(p1.y, p2.y) - node_size / 2 + (p1.x == p2.x ? node_size : 0);
         int w = p1.x == p2.x ? node_size : Math.abs(p1.x - p2.x) - node_size;
         int h = p1.y == p2.y ? node_size : Math.abs(p1.y - p2.y) - node_size;
 
         return new Rectangle(x, y, w, h);
+    }
+
+    public void paint(Graphics g) {
+
+        if (drawEdge) {
+            g.setColor(edgeColor);
+            for (Edge e : edges) {
+                Point p1 = pointToView(e.node1);
+                Point p2 = pointToView(e.node2);
+                g.drawLine(p1.x, p1.y, p2.x, p2.y);
+            }
+        }
+        if (drawNode) {
+            g.setColor(nodeColor);
+            for (Node n : this) {
+                Rectangle r = nodeBound(n);
+                g.fillRect(r.x + xOffset, r.y + yOffset, r.width, r.height);
+            }
+        }
+
     }
 
     void nodeClick(Node node) {
@@ -220,10 +228,14 @@ public class Graph extends ArrayList<Node> {
         System.out.println("edgeClick " + edge);
     }
 
-    List<ChangeListener> listeners = new ArrayList<>();
+    private List<ChangeListener> listeners = new ArrayList<>();
 
-    public void addChangeListener(ChangeListener changeListener) {
-        listeners.add(changeListener);
+    public void addChangeListener(ChangeListener e) {
+        listeners.add(e);
+    }
+    
+    public void removeChangeListener(ChangeListener e){
+        listeners.remove(e);
     }
 
     public void change() {
@@ -259,15 +271,13 @@ public class Graph extends ArrayList<Node> {
         int y2 = Math.max(node1.y, node2.y);
 
         for (int x = x1; x < x2; x++) {
-            add(node(x, y1), node(x + 1, y1));
+            add(x, y1, x + 1, y1);
         }
 
         for (int y = y1; y < y2; y++) {
-            add(node(x2, y), node(x2, y + 1));
+            add(x2, y, x2, y + 1);
         }
     }
-
-    ;
 
     public void read(InputStream input) throws Exception {
         clear();
@@ -297,7 +307,6 @@ public class Graph extends ArrayList<Node> {
                     break;
                 case "edge":
                     add((Integer) a[0], (Integer) a[1], (Integer) a[2], (Integer) a[3]);
-//                    add(node((Integer) a[0], (Integer) a[1]), node((Integer) a[2], (Integer) a[3]));
             }
         }
     }
@@ -308,144 +317,111 @@ public class Graph extends ArrayList<Node> {
                 writer.write("node = " + node.x + ", " + node.y + "\n");
             }
             for (Edge edge : edges) {
-                writer.write("edge =" + edge.node1.x + ", " + edge.node1.y + ", " + edge.node2.x + ", " + edge.node2.y + "\n");
+                writer.write("edge = " + edge.node1.x + ", " + edge.node1.y + ", " + edge.node2.x + ", " + edge.node2.y + "\n");
             }
         }
     }
-
-}
-
-class Room extends HashMap<Direction, Edge> {
-
-    public Room(Maze maze, Node position) {
-        Node n1 = new Node(position);
-        Node n2 = new Node(position.x + 1, position.y);
+    
+    Map<Direction,Edge> room(Node node){
+        Map map = new HashMap();
+        
+        Node n1 = new Node(node);
+        Node n2 = new Node(node.x + 1, node.y);
         //  north
-        put(Direction.SN, maze.edge(n1, n2));
-        n2 = new Node(position.x, position.y + 1);
+        map.put(Direction.SN, edge(n1, n2));
+        n2 = new Node(node.x, node.y + 1);
         // west 
-        put(Direction.EW, maze.edge(n1, n2));
+        map.put(Direction.EW, edge(n1, n2));
 
-        n1 = new Node(position.x + 1, position.y + 1);
+        n1 = new Node(node.x + 1, node.y + 1);
         // south
-        put(Direction.NS, maze.edge(n1, n2));
-        n2 = new Node(position.x + 1, position.y);
+        map.put(Direction.NS, edge(n1, n2));
+        n2 = new Node(node.x + 1, node.y);
         // east
-        put(Direction.WE, maze.edge(n1, n2));
-
-    }
-
-    boolean isWall(Direction d) {
-        return get(d) != null;
+        map.put(Direction.WE, edge(n1, n2));
+        return map;
     }
 
 }
 
-class GraphListener extends MouseAdapter {
+interface Sensor {
 
-    Graph graph;
-    Node start, stop;
-
-    Edge edgeAt(Point p) {
-        for (Edge e : graph.edges) {
-            if (graph.edgeBound(e).contains(p)) {
-                return e;
-            }
-        }
-        return null;
-    }
-
-    Node nodeAt(Point p) {
-        for (Node node : graph) {
-            if (graph.nodeBound(node).contains(p)) {
-                return node;
-            }
-        }
-        return null;
-    }
-
-    public GraphListener(Graph graph) {
-        this.graph = graph;
-    }
-
-    @Override
-    public void mouseDragged(MouseEvent e) {
-        if (start != null) {
-            Node node = nodeAt(e.getPoint());
-            if (node != null && node != stop) {
-                stop = node;
-                System.out.println("" + stop);
-
-            }
-        }
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-        stop = nodeAt(e.getPoint());
-        if (edge != null) {
-            graph.edges.remove(edge);
-        } else if (stop != null && start != null && stop != start) {
-            graph.wall(start, stop);
-        }
-        graph.change();
-    }
-
-    Edge edge;
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-        edge = edgeAt(e.getPoint());
-        if (edge != null) {
-            graph.edgeClick(edge);
-        }
-        start = nodeAt(e.getPoint());
-        if (start != null) {
-            graph.nodeClick(start);
-        }
-        graph.change();
-    }
+    public Node nextExists(Node position, Direction d);
 }
 
-class Sensor {
+class MouseIcons extends HashMap<Direction, ImageIcon> {
 
-    Maze maze;
+    int width = 10;
+    int height = 10;
 
-    public Sensor(Maze maze) {
-        this.maze = maze;
-    }
+    ImageIcon createIcon(Direction direction) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = image.getGraphics();
+        int[] xPoints;
+        int[] yPoints;
 
-    public Node nextExists(Node position, Direction d) {
-        Node n = new Node(position);
-        switch (d) {
+        switch (direction) {
             case WE:
-                n.x += 1;
+                xPoints = new int[]{0, width, 0};
+                yPoints = new int[]{0, height / 2, height};
                 break;
             case NS:
-                n.y += 1;
+                xPoints = new int[]{0, width / 2, width};
+                yPoints = new int[]{0, height, 0};
                 break;
             case EW:
-                n.x -= 1;
+                xPoints = new int[]{width, 0, width};
+                yPoints = new int[]{0, height / 2, height};
                 break;
             case SN:
-                n.y -= 1;
+                xPoints = new int[]{0, width / 2, width};
+                yPoints = new int[]{height, 0, height};
                 break;
             default:
                 return null;
-
-        }
-        if (n.x < 0 || n.x >= 16 || n.y < 0 || n.y >= 16) {
-            return null;
         }
 
-        Room room = new Room(maze, position);
-        if (room.isWall(d)) {
-            return null;
-        }
+        g.setColor(Color.red);
+        g.fillPolygon(xPoints, yPoints, 3);
 
-        return n;
+        return new ImageIcon(image);
+
     }
 
+    public MouseIcons() {
+        for (Direction d : Direction.values()) {
+            put(d, createIcon(d));
+        }
+    }
+
+}
+
+class MouseGraph extends Graph {
+
+    Mouse mouse;
+    MouseIcons icons = new MouseIcons();
+
+    public MouseGraph(Mouse mouse) {
+        this.mouse = mouse;
+        edgeColor = Color.ORANGE;
+        nodeColor = Color.ORANGE;
+        xOffset = edge_size / 2;
+        yOffset = edge_size / 2;
+        drawEdge = true;
+        drawNode = true;
+    }
+
+    @Override
+    public void paint(Graphics g) {
+
+        super.paint(g);
+
+        g.setColor(Color.red);
+
+        ImageIcon icon = icons.get(mouse.direction);
+        icon.paintIcon(null, g, mouse.position.x * edge_size + xOffset - icon.getIconWidth() / 2, mouse.position.y * edge_size + yOffset - icon.getIconHeight() / 2);
+
+    }
 }
 
 class Mouse {
@@ -475,45 +451,7 @@ class Mouse {
     List<Node> stack = new ArrayList<>();
     Sensor sensor;
 
-    Graph graph = new Graph() {
-        @Override
-        public void paint(Graphics g) {
-            
-            super.paint(g);
-
-            g.setColor(Color.red);
-
-            Rectangle r = new Rectangle(position.x * edge_size + edge_size / 2 - 4, position.y * edge_size + edge_size / 2 - 4, edge_size / 2, edge_size / 2);
-
-            int[] xPoints;
-            int[] yPoints;
-
-            switch (direction) {
-                case WE:
-                    xPoints = new int[]{r.x, r.x + r.width, r.x};
-                    yPoints = new int[]{r.y, r.y + r.height / 2, r.y + r.height};
-                    break;
-                case NS:
-                    xPoints = new int[]{r.x, r.x + r.width / 2, r.x + r.width};
-                    yPoints = new int[]{r.y, r.y + r.height, r.y};
-                    break;
-                case EW:
-                    xPoints = new int[]{r.x + r.width, r.x, r.x + r.width};
-                    yPoints = new int[]{r.y, r.y + r.height / 2, r.y + r.height};
-                    break;
-                case SN:
-                    xPoints = new int[]{r.x, r.x + r.width / 2, r.x + r.width};
-                    yPoints = new int[]{r.y + r.height, r.y, r.y + r.height};
-                    break;
-                default:
-                    return;
-            }
-
-            g.fillPolygon(xPoints, yPoints, 3);
-        }
-
-    };
-    
+    Graph graph = new MouseGraph(this);
 
     List<Edge> pathList() {
         List list = new ArrayList();
@@ -544,13 +482,6 @@ class Mouse {
     public Mouse(Sensor sensor) {
         this.sensor = sensor;
         graph.add(position);
-        graph.edgeColor = Color.ORANGE;
-        graph.nodeColor = Color.ORANGE;
-        graph.xOffset = graph.edge_size/2;
-        graph.yOffset = graph.edge_size/2;
-        graph.drawEdge = true;
-        graph.drawNode = true;
-        
     }
 
     public boolean forvard() {
@@ -651,14 +582,110 @@ class Mouse {
     public Node next() {
         return null;
     }
-;
 
 }
 
-class Maze extends Graph {
+class MazeListener extends MouseAdapter {
+
+    Graph graph;
+    Node start, stop;
+
+    Edge edgeAt(Point p) {
+        for (Edge e : graph.edges) {
+            if (graph.edgeBound(e).contains(p)) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    Node nodeAt(Point p) {
+        for (Node node : graph) {
+            if (graph.nodeBound(node).contains(p)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    public MazeListener(Graph graph) {
+        this.graph = graph;
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        if (start != null) {
+            Node node = nodeAt(e.getPoint());
+            if (node != null && node != stop) {
+                stop = node;
+                System.out.println("" + stop);
+
+            }
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        stop = nodeAt(e.getPoint());
+        if (edge != null) {
+            graph.edges.remove(edge);
+        } else if (stop != null && start != null && stop != start) {
+            graph.wall(start, stop);
+        }
+        graph.change();
+    }
+
+    Edge edge;
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        edge = edgeAt(e.getPoint());
+        if (edge != null) {
+            graph.edgeClick(edge);
+        }
+        start = nodeAt(e.getPoint());
+        if (start != null) {
+            graph.nodeClick(start);
+        }
+        graph.change();
+    }
+}
+
+class Maze extends Graph implements Sensor {
 
     int width;
+    
     int height;
+
+    @Override
+    public Node nextExists(Node position, Direction d) {
+        Node n = new Node(position);
+        switch (d) {
+            case WE:
+                n.x += 1;
+                break;
+            case NS:
+                n.y += 1;
+                break;
+            case EW:
+                n.x -= 1;
+                break;
+            case SN:
+                n.y -= 1;
+                break;
+            default:
+                return null;
+
+        }
+        if (n.x < 0 || n.x >= 16 || n.y < 0 || n.y >= 16) {
+            return null;
+        }
+        
+        if (room(position).get(d)==null)
+            return n;
+
+        return null;
+    }
 
     @Override
     public void paint(Graphics g) {
@@ -677,8 +704,6 @@ class Maze extends Graph {
             }
         }
     }
-    
-    
 
     public Maze(int width, int height) {
         this.width = width;
@@ -923,7 +948,15 @@ class StatusBar extends JPanel {
 
 class Brouser extends JPanel implements ChangeListener {
 
-    List<Graph> grapList = new ArrayList<>();
+    private List<Graph> grapList = new ArrayList<>();
+
+    public void add(Graph graph) {
+        grapList.add(graph);
+    }
+
+    public void remove(Graph graph) {
+        grapList.remove(graph);
+    }
 
     @Override
     public void stateChanged(ChangeEvent e) {
@@ -975,9 +1008,11 @@ class App extends JPanel implements WindowListener {
     }
 
     Maze maze = new Maze(16, 16);
-    Mouse mouse = new Mouse(new Sensor(maze));
-    MouseControl mouseControl = new MouseControl(mouse);
+    MouseAdapter mazeListener = new MazeListener(maze);
     MazeControl mazeControl = new MazeControl(maze);
+
+    Mouse mouse = new Mouse(maze);
+    MouseControl mouseControl = new MouseControl(mouse);
 
     CommandManager mazeTools = new CommandManager("cmd1") {
         @Override
@@ -985,11 +1020,11 @@ class App extends JPanel implements WindowListener {
             Graph g = new Graph();
             g.edgeColor = Color.BLUE;
             g.nodeColor = Color.BLUE;
-            g.xOffset = g.edge_size/2;
-            g.yOffset = g.edge_size/2;
+            g.xOffset = g.edge_size / 2;
+            g.yOffset = g.edge_size / 2;
             for (Edge edge : mouse.pathList()) {
                 g.add(edge);
-                brouser.grapList.add(g);
+                brouser.add(g);
                 brouser.repaint();
             }
         }
@@ -1004,12 +1039,11 @@ class App extends JPanel implements WindowListener {
         super(new BorderLayout());
 
         brouser.setPreferredSize(maze.preferredSize());
-        brouser.grapList.add(maze);
-        brouser.grapList.add(mouse.graph);
+        brouser.add(maze);
+        brouser.add(mouse.graph);
 
-        GraphListener graphListener = new GraphListener(maze);
-        brouser.addMouseListener(graphListener);
-        brouser.addMouseMotionListener(graphListener);
+        brouser.addMouseListener(mazeListener);
+        brouser.addMouseMotionListener(mazeListener);
         maze.addChangeListener(brouser);
         mouse.addChangeListener(e -> {
             Mouse m = (Mouse) e.getSource();
@@ -1042,8 +1076,9 @@ class App extends JPanel implements WindowListener {
         menuBar.add(mazeTools.getMenu("Tools"));
     }
 
+    String title = "MicroMouse v2.0";
     private void execute() {
-        JFrame frame = new JFrame("MicroMouse v2.0");
+        JFrame frame = new JFrame(title);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setJMenuBar(menuBar);
         frame.addWindowListener(this);
