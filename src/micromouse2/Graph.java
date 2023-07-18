@@ -44,7 +44,7 @@ import javax.swing.event.ChangeListener;
  * @author viljinsky
  */
 enum Direction {
-    
+
     WE, NS, EW, SN;
 
     public Direction left() {
@@ -184,13 +184,13 @@ public class Graph extends ArrayList<Node> {
     Rectangle nodeBound(Node node) {
         return new Rectangle(node.x * edge_size - node_size / 2, node.y * edge_size - node_size / 2, node_size, node_size);
     }
-    
-    Point pointToView(Point p){
-        return new Point(p.x * edge_size+xOffset, p.y * edge_size+yOffset);
+
+    Point pointToView(Point p) {
+        return new Point(p.x * edge_size + xOffset, p.y * edge_size + yOffset);
     }
 
     Rectangle edgeBound(Edge edge) {
-        Point p1 = pointToView(edge.node1) ;
+        Point p1 = pointToView(edge.node1);
         Point p2 = pointToView(edge.node2);
         int x = Math.min(p1.x, p2.x) - node_size / 2 + (p1.y == p2.y ? node_size : 0);
         int y = Math.min(p1.y, p2.y) - node_size / 2 + (p1.x == p2.x ? node_size : 0);
@@ -233,8 +233,8 @@ public class Graph extends ArrayList<Node> {
     public void addChangeListener(ChangeListener e) {
         listeners.add(e);
     }
-    
-    public void removeChangeListener(ChangeListener e){
+
+    public void removeChangeListener(ChangeListener e) {
         listeners.remove(e);
     }
 
@@ -321,23 +321,25 @@ public class Graph extends ArrayList<Node> {
             }
         }
     }
-    
-    Map<Direction,Edge> room(Node node){
+
+    Map<Direction, Edge> room(Node node) {
         Map map = new HashMap();
-        
+
+        //  north
         Node n1 = new Node(node);
         Node n2 = new Node(node.x + 1, node.y);
-        //  north
         map.put(Direction.SN, edge(n1, n2));
-        n2 = new Node(node.x, node.y + 1);
+
         // west 
+        n2 = new Node(node.x, node.y + 1);
         map.put(Direction.EW, edge(n1, n2));
 
-        n1 = new Node(node.x + 1, node.y + 1);
         // south
+        n1 = new Node(node.x + 1, node.y + 1);
         map.put(Direction.NS, edge(n1, n2));
-        n2 = new Node(node.x + 1, node.y);
+
         // east
+        n2 = new Node(node.x + 1, node.y);
         map.put(Direction.WE, edge(n1, n2));
         return map;
     }
@@ -654,7 +656,7 @@ class MazeListener extends MouseAdapter {
 class Maze extends Graph implements Sensor {
 
     int width;
-    
+
     int height;
 
     @Override
@@ -680,9 +682,10 @@ class Maze extends Graph implements Sensor {
         if (n.x < 0 || n.x >= 16 || n.y < 0 || n.y >= 16) {
             return null;
         }
-        
-        if (room(position).get(d)==null)
+
+        if (room(position).get(d) == null) {
             return n;
+        }
 
         return null;
     }
@@ -977,6 +980,131 @@ class Brouser extends JPanel implements ChangeListener {
 
 }
 
+class PathFinder{
+    
+    Graph source;
+
+    public PathFinder(Graph graph) {
+        this.source = graph;
+    }
+    
+    List<Node> nextNode(Node node){
+        List l = new ArrayList();
+        for(Edge edge:source.edges){
+            if (edge.contain(node)){
+                if (node == edge.node1){
+                    l.add(edge.node2);
+                } else {
+                    l.add(edge.node1);
+                }
+            }
+        }
+        return l;    
+    }
+    
+    Graph tmp;
+    void recur(Node node){
+        for(Edge edge:source.edges){
+            if (edge.contain(node)){
+                if (edge.node1.equals(node)){                    
+                } else {
+                }
+            }
+        }
+    }
+    
+    public void execute(){
+        tmp = new Graph();
+        recur(source.node(0, 0));
+        
+    }
+
+    
+}
+
+class MazeTools extends CommandManager {
+    
+//    class NodeExt extends Node{
+//        NodeExt parent;
+//    }
+
+    private static final String TOOL1 = "tool1";
+    private static final String TOOL2 = "tool2";
+    private static final String TOOL3 = "tool3";
+
+    App app;
+    Graph graph;
+
+    public MazeTools(App app) {
+        super(TOOL1, TOOL2, TOOL3);
+        this.app = app;
+    }
+
+    void tool1() {
+        if (graph == null) {
+            graph = new Graph();
+            graph.edgeColor = Color.BLUE;
+            graph.nodeColor = Color.BLUE;
+            graph.xOffset = graph.edge_size / 2;
+            graph.yOffset = graph.edge_size / 2;
+            app.brouser.add(graph);
+        }
+        graph.clear();
+        for (Edge edge : app.mouse.pathList()) {
+            graph.add(edge);
+        }
+        app.brouser.repaint();
+    }
+    
+    void tool2(){
+        Graph g1 = new Graph();
+        g1.nodeColor = Color.GREEN;
+        g1.edgeColor = Color.GREEN;
+        g1.xOffset = g1.edge_size/2;
+        g1.yOffset = g1.edge_size/2;
+        Graph source = app.mouse.graph;
+        for(Edge e1:source.edges){  
+            int count = 0;
+            for(Edge e2:source.edges){                
+                if (!e1.equals(e2)){
+                    if (e2.contain(e1.node1)){
+                        count++;
+                    }
+                } 
+            }
+            if (count>1){
+                g1.add(e1.node1);
+            }
+        }
+        app.brouser.add(g1);
+        app.brouser.repaint();
+                
+    }
+    
+    void tool3(){
+
+        PathFinder f = new PathFinder(app.mouse.graph);
+        f.execute();
+        
+    }
+
+    @Override
+    public void doCommand(String command) {
+        switch (command) {
+            case TOOL1:
+                tool1();
+                break;
+            case TOOL2:
+                tool2();
+                break;
+            case TOOL3:
+                tool3();
+                break;
+        }
+    }
+
+}
+
 class App extends JPanel implements WindowListener {
 
     @Override
@@ -1014,23 +1142,10 @@ class App extends JPanel implements WindowListener {
     Mouse mouse = new Mouse(maze);
     MouseControl mouseControl = new MouseControl(mouse);
 
-    CommandManager mazeTools = new CommandManager("cmd1") {
-        @Override
-        public void doCommand(String command) {
-            Graph g = new Graph();
-            g.edgeColor = Color.BLUE;
-            g.nodeColor = Color.BLUE;
-            g.xOffset = g.edge_size / 2;
-            g.yOffset = g.edge_size / 2;
-            for (Edge edge : mouse.pathList()) {
-                g.add(edge);
-                brouser.add(g);
-                brouser.repaint();
-            }
-        }
-    };
+    CommandManager mazeTool = new MazeTools(this);
 
     Brouser brouser = new Brouser();
+
     StatusBar statusBar = new StatusBar();
 
     JMenuBar menuBar = new JMenuBar();
@@ -1073,10 +1188,11 @@ class App extends JPanel implements WindowListener {
         add(statusBar, BorderLayout.PAGE_END);
 
         menuBar.add(mazeControl.getMenu("Maze"));
-        menuBar.add(mazeTools.getMenu("Tools"));
+        menuBar.add(mazeTool.getMenu("Tools"));
     }
 
     String title = "MicroMouse v2.0";
+
     private void execute() {
         JFrame frame = new JFrame(title);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
