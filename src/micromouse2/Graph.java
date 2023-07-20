@@ -23,9 +23,11 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ImageIcon;
@@ -133,6 +135,18 @@ class Edge {
 
     public boolean contain(Node node) {
         return node != null && (node.equals(node1) || node.equals(node2));
+    }
+
+    boolean startWith(Node node) {
+        return node1.equals(node);
+    }
+
+    boolean endWith(Node node) {
+        return node2.equals(node);
+    }
+
+    Edge revert() {
+        return new Edge(node2, node1);
     }
 
 }
@@ -514,6 +528,7 @@ class Mouse {
 //            graph.add(n);
             graph.add(position, n);
             position = n;
+            statusText = "step";
             return true;
         }
 
@@ -521,6 +536,7 @@ class Mouse {
             n = sensor.nextExists(position, d);
             if (n != null && !graph.contains(n)) {
                 direction = d;
+                statusText = "rotate";
                 return true;
             }
         }
@@ -530,11 +546,13 @@ class Mouse {
             for (Direction d : Direction.values()) {
                 n = sensor.nextExists(position, d);
                 if (n != null && !graph.contains(n)) {
+                    statusText = "back";
                     return true;
                 }
             }
         }
 
+        statusText = "stop";
         return false;
     }
 
@@ -553,6 +571,7 @@ class Mouse {
                 direction = Direction.WE;
                 break;
         }
+        statusText = "left";
     }
 
     public void right() {
@@ -570,6 +589,7 @@ class Mouse {
                 direction = Direction.WE;
                 break;
         }
+        statusText = "right";
 
     }
 
@@ -845,15 +865,11 @@ class MazeControl extends CommandManager {
                     break;
                 case READ:
                     maze.read(getClass().getResourceAsStream("/micromouse2/maze2"));
-//                    if (file.exists())
-//                    try (FileInputStream input = new FileInputStream(file)) {
-//                        maze.read(input);
-//                    }
                     break;
                 case WRITE:
-                try (FileOutputStream out = new FileOutputStream(file)) {
-                    maze.write(out);
-                }
+                    try (FileOutputStream out = new FileOutputStream(file)) {
+                        maze.write(out);
+                    }
                 break;
             }
         } catch (Exception e) {
@@ -980,60 +996,110 @@ class Brouser extends JPanel implements ChangeListener {
 
 }
 
-class PathFinder{
+class Path extends ArrayList<Edge>{
     
-    Graph source;
+    Set<Node> nodes = new HashSet<>();
 
-    public PathFinder(Graph graph) {
-        this.source = graph;
-    }
-    
-    List<Node> nextNode(Node node){
-        List l = new ArrayList();
-        for(Edge edge:source.edges){
-            if (edge.contain(node)){
-                if (node == edge.node1){
-                    l.add(edge.node2);
-                } else {
-                    l.add(edge.node1);
-                }
-            }
-        }
-        return l;    
-    }
-    
-    Graph tmp;
-    void recur(Node node){
-        for(Edge edge:source.edges){
-            if (edge.contain(node)){
-                if (edge.node1.equals(node)){                    
-                } else {
-                }
-            }
+    public Path(Graph graph) {        
+        for(Edge e: graph.edges){
+            add(e);
+            nodes.add(e.node1);
         }
     }
-    
-    public void execute(){
-        tmp = new Graph();
-        recur(source.node(0, 0));
-        
-    }
-
     
 }
 
+//class Path extends ArrayList<Edge> {
+//
+//    public void print() {
+//        System.out.println("path");
+//        for (Edge edge : this) {
+//            System.out.println("->" + edge);
+//        }
+//    }
+//
+//    Path shorten() {
+//        Path path = new Path();
+//        int index = 0;
+//        Edge edge = get(index);
+//        Node node = edge.node2;
+//        for(int i=index+1;i<size();i++){
+//            if (get(i).node1.equals(node)){
+//                node = get(i).node2;
+//                continue;                
+//            }
+//            edge.node2 = node;
+//            path.add(edge);
+//            edge = get(i);
+//            node = edge.node2;
+//            
+//        }
+//        return path;
+//    }
+//}
+//
+//class PathFinder {
+//
+//    Graph source;
+//
+//    public PathFinder(Graph graph) {
+//        this.source = graph;
+//    }
+//
+//    void recure(Path path, Node node) {
+//        for (Edge edge : source.edges) {
+//            if (edge.contain(node)) {
+////                if (edge.endWith(node)) {
+////                    edge = edge.revert();
+////                }
+//                if (!path.contains(edge)) {
+//                    path.add(edge);
+//                    recure(path, edge.node2);
+//                }
+//            }
+//        }
+//    }
+//    
+//
+//    public List<Edge> execute() {
+//
+//        Node node = source.node(0, 0);
+//        Path path = new Path();
+//        
+//        for(Node n:source){
+//            int count = 0;
+//            for(Edge e: source.edges){
+//                if (e.contain(n)){
+//                    count++;
+//                }
+//            }
+//            if (count>2){
+//                System.out.println("count "+n+" "+count);
+//            }
+//        }
+//        
+////        recure(path, node);
+//        
+//       // path = path.shorten();
+//
+//        path.print();
+//        return path;
+//
+//    }
+//
+//}
+
 class MazeTools extends CommandManager {
-    
+
 //    class NodeExt extends Node{
 //        NodeExt parent;
 //    }
-
     private static final String TOOL1 = "tool1";
     private static final String TOOL2 = "tool2";
     private static final String TOOL3 = "tool3";
 
     App app;
-    Graph graph;
+//    Graph graph;
 
     public MazeTools(App app) {
         super(TOOL1, TOOL2, TOOL3);
@@ -1041,51 +1107,68 @@ class MazeTools extends CommandManager {
     }
 
     void tool1() {
-        if (graph == null) {
-            graph = new Graph();
-            graph.edgeColor = Color.BLUE;
-            graph.nodeColor = Color.BLUE;
-            graph.xOffset = graph.edge_size / 2;
-            graph.yOffset = graph.edge_size / 2;
-            app.brouser.add(graph);
-        }
-        graph.clear();
-        for (Edge edge : app.mouse.pathList()) {
-            graph.add(edge);
-        }
-        app.brouser.repaint();
-    }
-    
-    void tool2(){
-        Graph g1 = new Graph();
-        g1.nodeColor = Color.GREEN;
-        g1.edgeColor = Color.GREEN;
-        g1.xOffset = g1.edge_size/2;
-        g1.yOffset = g1.edge_size/2;
-        Graph source = app.mouse.graph;
-        for(Edge e1:source.edges){  
-            int count = 0;
-            for(Edge e2:source.edges){                
-                if (!e1.equals(e2)){
-                    if (e2.contain(e1.node1)){
-                        count++;
-                    }
-                } 
-            }
-            if (count>1){
-                g1.add(e1.node1);
-            }
-        }
-        app.brouser.add(g1);
-        app.brouser.repaint();
-                
-    }
-    
-    void tool3(){
-
-        PathFinder f = new PathFinder(app.mouse.graph);
-        f.execute();
         
+        Path path = new Path(app.mouse.graph);
+        System.out.println(""+path.nodes.size());
+        System.out.println(""+path.nodes);
+        
+        Graph graph = new Graph();
+        graph.xOffset = graph.edge_size/2;
+        graph.yOffset = graph.edge_size/2;
+        graph.edgeColor = Color.BLUE;
+        graph.nodeColor = Color.BLUE;
+                
+        for(Edge edge: path){
+            graph.add(edge);            
+        }
+        app.brouser.add(graph);
+        app.brouser.repaint();
+        
+//        if (graph == null) {
+//            graph = new Graph();
+//            graph.edgeColor = Color.BLUE;
+//            graph.nodeColor = Color.BLUE;
+//            graph.xOffset = graph.edge_size / 2;
+//            graph.yOffset = graph.edge_size / 2;
+//            app.brouser.add(graph);
+//        }
+//        graph.clear();
+//        for (Edge edge : app.mouse.pathList()) {
+//            graph.add(edge);
+//        }
+//        app.brouser.repaint();
+    }
+
+    void tool2() {
+//        Graph g1 = new Graph();
+//        g1.nodeColor = Color.GREEN;
+//        g1.edgeColor = Color.GREEN;
+//        g1.xOffset = g1.edge_size / 2;
+//        g1.yOffset = g1.edge_size / 2;
+//        Graph source = app.mouse.graph;
+//        for (Edge e1 : source.edges) {
+//            int count = 0;
+//            for (Edge e2 : source.edges) {
+//                if (!e1.equals(e2)) {
+//                    if (e2.contain(e1.node1)) {
+//                        count++;
+//                    }
+//                }
+//            }
+//            if (count > 1) {
+//                g1.add(e1.node1);
+//            }
+//        }
+//        app.brouser.add(g1);
+//        app.brouser.repaint();
+//
+    }
+
+    void tool3() {
+
+//        PathFinder f = new PathFinder(app.mouse.graph);
+//        return f.execute();
+
     }
 
     @Override
@@ -1099,6 +1182,18 @@ class MazeTools extends CommandManager {
                 break;
             case TOOL3:
                 tool3();
+//                List<Edge> list = tool3();
+//
+//                Graph g = new Graph();
+//                g.edgeColor = Color.MAGENTA;
+//                g.nodeColor = Color.MAGENTA;
+//                g.xOffset = g.edge_size / 2;
+//                g.yOffset = g.edge_size / 2;
+//                for (Edge e : list) {
+//                    g.add(e);
+//                }
+//                app.brouser.add(g);
+//                app.brouser.repaint();
                 break;
         }
     }
