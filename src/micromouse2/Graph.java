@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,6 +39,8 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTree;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -808,7 +811,7 @@ abstract class CommandManager extends ArrayList<Action> {
         }
     }
 
-    public abstract void doCommand(String command);
+    protected abstract void doCommand(String command);
 
     protected final Action createAction(String command) {
         return new AbstractAction(command) {
@@ -868,8 +871,8 @@ class MazeControl extends CommandManager {
                     break;
                 case WRITE:
                     try (FileOutputStream out = new FileOutputStream(file)) {
-                        maze.write(out);
-                    }
+                    maze.write(out);
+                }
                 break;
             }
         } catch (Exception e) {
@@ -996,110 +999,13 @@ class Brouser extends JPanel implements ChangeListener {
 
 }
 
-class Path extends ArrayList<Edge>{
-    
-    Set<Node> nodes = new HashSet<>();
-
-    public Path(Graph graph) {        
-        for(Edge e: graph.edges){
-            add(e);
-            nodes.add(e.node1);
-        }
-    }
-    
-}
-
-//class Path extends ArrayList<Edge> {
-//
-//    public void print() {
-//        System.out.println("path");
-//        for (Edge edge : this) {
-//            System.out.println("->" + edge);
-//        }
-//    }
-//
-//    Path shorten() {
-//        Path path = new Path();
-//        int index = 0;
-//        Edge edge = get(index);
-//        Node node = edge.node2;
-//        for(int i=index+1;i<size();i++){
-//            if (get(i).node1.equals(node)){
-//                node = get(i).node2;
-//                continue;                
-//            }
-//            edge.node2 = node;
-//            path.add(edge);
-//            edge = get(i);
-//            node = edge.node2;
-//            
-//        }
-//        return path;
-//    }
-//}
-//
-//class PathFinder {
-//
-//    Graph source;
-//
-//    public PathFinder(Graph graph) {
-//        this.source = graph;
-//    }
-//
-//    void recure(Path path, Node node) {
-//        for (Edge edge : source.edges) {
-//            if (edge.contain(node)) {
-////                if (edge.endWith(node)) {
-////                    edge = edge.revert();
-////                }
-//                if (!path.contains(edge)) {
-//                    path.add(edge);
-//                    recure(path, edge.node2);
-//                }
-//            }
-//        }
-//    }
-//    
-//
-//    public List<Edge> execute() {
-//
-//        Node node = source.node(0, 0);
-//        Path path = new Path();
-//        
-//        for(Node n:source){
-//            int count = 0;
-//            for(Edge e: source.edges){
-//                if (e.contain(n)){
-//                    count++;
-//                }
-//            }
-//            if (count>2){
-//                System.out.println("count "+n+" "+count);
-//            }
-//        }
-//        
-////        recure(path, node);
-//        
-//       // path = path.shorten();
-//
-//        path.print();
-//        return path;
-//
-//    }
-//
-//}
-
 class MazeTools extends CommandManager {
 
-//    class NodeExt extends Node{
-//        NodeExt parent;
-//    }
     private static final String TOOL1 = "tool1";
     private static final String TOOL2 = "tool2";
     private static final String TOOL3 = "tool3";
 
     App app;
-//    Graph graph;
 
     public MazeTools(App app) {
         super(TOOL1, TOOL2, TOOL3);
@@ -1107,67 +1013,101 @@ class MazeTools extends CommandManager {
     }
 
     void tool1() {
-        
-        Path path = new Path(app.mouse.graph);
-        System.out.println(""+path.nodes.size());
-        System.out.println(""+path.nodes);
-        
-        Graph graph = new Graph();
-        graph.xOffset = graph.edge_size/2;
-        graph.yOffset = graph.edge_size/2;
-        graph.edgeColor = Color.BLUE;
-        graph.nodeColor = Color.BLUE;
-                
-        for(Edge edge: path){
-            graph.add(edge);            
-        }
-        app.brouser.add(graph);
-        app.brouser.repaint();
-        
-//        if (graph == null) {
-//            graph = new Graph();
-//            graph.edgeColor = Color.BLUE;
-//            graph.nodeColor = Color.BLUE;
-//            graph.xOffset = graph.edge_size / 2;
-//            graph.yOffset = graph.edge_size / 2;
-//            app.brouser.add(graph);
-//        }
-//        graph.clear();
-//        for (Edge edge : app.mouse.pathList()) {
-//            graph.add(edge);
-//        }
-//        app.brouser.repaint();
+
     }
 
+    class Node2 extends Node {
+
+        int weight;
+
+        public Node2(Point point, int weight) {
+            super(point);
+            this.weight = weight;
+        }
+
+    }
+
+
+
     void tool2() {
-//        Graph g1 = new Graph();
-//        g1.nodeColor = Color.GREEN;
-//        g1.edgeColor = Color.GREEN;
-//        g1.xOffset = g1.edge_size / 2;
-//        g1.yOffset = g1.edge_size / 2;
-//        Graph source = app.mouse.graph;
-//        for (Edge e1 : source.edges) {
-//            int count = 0;
-//            for (Edge e2 : source.edges) {
-//                if (!e1.equals(e2)) {
-//                    if (e2.contain(e1.node1)) {
-//                        count++;
-//                    }
-//                }
-//            }
-//            if (count > 1) {
-//                g1.add(e1.node1);
-//            }
-//        }
-//        app.brouser.add(g1);
-//        app.brouser.repaint();
-//
+
+    }
+
+    class GraphExt extends Graph {
+        
+        Graph source;
+
+        public GraphExt(Graph source) {
+            this.source = source;
+            nodeColor = Color.BLUE;
+            edgeColor = Color.BLUE;
+            xOffset = edge_size / 2;
+            yOffset = edge_size / 2;
+        }
+        List<Node> children( Node node) {
+            List list = new ArrayList();
+
+            for (Edge edge : source.edges) {
+                if (edge.node1.equals(node)) {
+                    list.add(edge.node2);
+                }
+                if (edge.node2.equals(node)) {
+                    list.add(edge.node1);
+                }
+            }
+            return list;
+        }
+
+        int childrenCount(Node node) {
+            int result = 0;
+            for (Edge edge : source.edges) {
+                if (edge.contain(node)) {
+                    result++;
+                }
+            }
+            return result;
+        }
+
+        void recur(Node node, List<Node> visited) {            
+            for (Node child : children(node)) {
+                if (!visited.contains(child)) {
+                    visited.add(child);
+                    recur(child, visited);
+                }
+            }
+        }
+        
+        List<Node> path(int col,int row){
+            Node node = source.node(col, row);
+            List<Node> visited = new ArrayList<>();
+            recur(node, visited);
+            return visited;
+        }
+        
+        void print(List<Node> list) {
+            for (Node node : list) {
+                System.out.print(node + " ");
+            }
+            System.out.println("");
+        }
+
     }
 
     void tool3() {
 
-//        PathFinder f = new PathFinder(app.mouse.graph);
-//        return f.execute();
+        Graph graph = app.mouse.graph;
+
+        GraphExt g = new GraphExt(graph);
+        
+        List<Node> visited = g.path(0,0);
+        
+        g.print(visited);
+        
+        for (int i = 1; i < visited.size(); i++) {
+            g.add(new Edge(visited.get(i - 1), visited.get(i)));
+        }
+        app.brouser.add(g);
+        app.brouser.repaint();
 
     }
 
@@ -1182,20 +1122,16 @@ class MazeTools extends CommandManager {
                 break;
             case TOOL3:
                 tool3();
-//                List<Edge> list = tool3();
-//
-//                Graph g = new Graph();
-//                g.edgeColor = Color.MAGENTA;
-//                g.nodeColor = Color.MAGENTA;
-//                g.xOffset = g.edge_size / 2;
-//                g.yOffset = g.edge_size / 2;
-//                for (Edge e : list) {
-//                    g.add(e);
-//                }
-//                app.brouser.add(g);
-//                app.brouser.repaint();
                 break;
         }
+    }
+
+}
+
+class GraphTree extends JTree {
+
+    public GraphTree() {
+        setPreferredSize(new Dimension(200, 200));
     }
 
 }
@@ -1230,20 +1166,22 @@ class App extends JPanel implements WindowListener {
     public void windowDeactivated(WindowEvent e) {
     }
 
-    Maze maze = new Maze(16, 16);
+    public Maze maze = new Maze(16, 16);
     MouseAdapter mazeListener = new MazeListener(maze);
     MazeControl mazeControl = new MazeControl(maze);
 
-    Mouse mouse = new Mouse(maze);
+    public Mouse mouse = new Mouse(maze);
     MouseControl mouseControl = new MouseControl(mouse);
 
     CommandManager mazeTool = new MazeTools(this);
 
-    Brouser brouser = new Brouser();
+    public Brouser brouser = new Brouser();
 
     StatusBar statusBar = new StatusBar();
 
-    JMenuBar menuBar = new JMenuBar();
+    public JMenuBar menuBar = new JMenuBar();
+
+    GraphTree tree = new GraphTree();
 
     public App() {
         super(new BorderLayout());
@@ -1278,7 +1216,12 @@ class App extends JPanel implements WindowListener {
 
         JPanel cover = new JPanel(new FlowLayout(FlowLayout.CENTER, 7, 7));
         cover.add(brouser);
-        add(new JScrollPane(cover));
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setLeftComponent(new JScrollPane(cover));
+        splitPane.setRightComponent(new JScrollPane(tree));
+        splitPane.setResizeWeight(1.0);
+        add(splitPane);
+//        add(new JScrollPane(cover));
         add(mouseControl.controlBar(), BorderLayout.PAGE_START);
         add(statusBar, BorderLayout.PAGE_END);
 
