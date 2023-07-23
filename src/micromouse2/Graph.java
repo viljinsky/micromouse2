@@ -199,7 +199,8 @@ public class Graph extends ArrayList<Node> {
     }
 
     Rectangle nodeBound(Node node) {
-        return new Rectangle(node.x * edge_size - node_size / 2, node.y * edge_size - node_size / 2, node_size, node_size);
+        Point p = pointToView(node);
+        return new Rectangle(p.x - node_size / 2 , p.y - node_size / 2, node_size, node_size);
     }
 
     Point pointToView(Point p) {
@@ -231,7 +232,7 @@ public class Graph extends ArrayList<Node> {
             g.setColor(nodeColor);
             for (Node n : this) {
                 Rectangle r = nodeBound(n);
-                g.fillRect(r.x + xOffset, r.y + yOffset, r.width, r.height);
+                g.fillRect(r.x, r.y, r.width, r.height);
             }
         }
 
@@ -360,6 +361,26 @@ public class Graph extends ArrayList<Node> {
         map.put(Direction.WE, edge(n1, n2));
         return map;
     }
+    
+    public Edge edgeAt(Point p) {
+        for (Edge e : edges) {
+            if (edgeBound(e).contains(p)) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    public Node nodeAt(Point p) {
+        for (Node node : this) {
+            if (nodeBound(node).contains(p)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    
 
 }
 
@@ -615,24 +636,6 @@ class MazeListener extends MouseAdapter {
     Graph graph;
     Node start, stop;
 
-    Edge edgeAt(Point p) {
-        for (Edge e : graph.edges) {
-            if (graph.edgeBound(e).contains(p)) {
-                return e;
-            }
-        }
-        return null;
-    }
-
-    Node nodeAt(Point p) {
-        for (Node node : graph) {
-            if (graph.nodeBound(node).contains(p)) {
-                return node;
-            }
-        }
-        return null;
-    }
-
     public MazeListener(Graph graph) {
         this.graph = graph;
     }
@@ -640,7 +643,7 @@ class MazeListener extends MouseAdapter {
     @Override
     public void mouseDragged(MouseEvent e) {
         if (start != null) {
-            Node node = nodeAt(e.getPoint());
+            Node node = graph.nodeAt(e.getPoint());
             if (node != null && node != stop) {
                 stop = node;
                 System.out.println("" + stop);
@@ -651,7 +654,7 @@ class MazeListener extends MouseAdapter {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        stop = nodeAt(e.getPoint());
+        stop = graph.nodeAt(e.getPoint());
         if (edge != null) {
             graph.edges.remove(edge);
         } else if (stop != null && start != null && stop != start) {
@@ -664,11 +667,11 @@ class MazeListener extends MouseAdapter {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        edge = edgeAt(e.getPoint());
+        edge = graph.edgeAt(e.getPoint());
         if (edge != null) {
             graph.edgeClick(edge);
         }
-        start = nodeAt(e.getPoint());
+        start = graph.nodeAt(e.getPoint());
         if (start != null) {
             graph.nodeClick(start);
         }
