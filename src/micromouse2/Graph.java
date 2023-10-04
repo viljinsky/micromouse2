@@ -200,7 +200,7 @@ public class Graph extends ArrayList<Node> {
 
     Rectangle nodeBound(Node node) {
         Point p = pointToView(node);
-        return new Rectangle(p.x - node_size / 2 , p.y - node_size / 2, node_size, node_size);
+        return new Rectangle(p.x - node_size / 2, p.y - node_size / 2, node_size, node_size);
     }
 
     Point pointToView(Point p) {
@@ -218,21 +218,30 @@ public class Graph extends ArrayList<Node> {
         return new Rectangle(x, y, w, h);
     }
 
+    protected void paintNode(Graphics g, Node n) {
+        Rectangle r = nodeBound(n);
+        g.fillRect(r.x, r.y, r.width, r.height);
+    }
+
+    protected void paintEdge(Graphics g, Edge e) {
+        Point p1 = pointToView(e.node1);
+        Point p2 = pointToView(e.node2);
+        g.drawLine(p1.x, p1.y, p2.x, p2.y);
+    }
+
     public void paint(Graphics g) {
 
         if (drawEdge) {
             g.setColor(edgeColor);
             for (Edge e : edges) {
-                Point p1 = pointToView(e.node1);
-                Point p2 = pointToView(e.node2);
-                g.drawLine(p1.x, p1.y, p2.x, p2.y);
+                paintEdge(g, e);
             }
         }
+        
         if (drawNode) {
             g.setColor(nodeColor);
             for (Node n : this) {
-                Rectangle r = nodeBound(n);
-                g.fillRect(r.x, r.y, r.width, r.height);
+                paintNode(g, n);
             }
         }
 
@@ -361,7 +370,7 @@ public class Graph extends ArrayList<Node> {
         map.put(Direction.WE, edge(n1, n2));
         return map;
     }
-    
+
     public Edge edgeAt(Point p) {
         for (Edge e : edges) {
             if (edgeBound(e).contains(p)) {
@@ -379,8 +388,6 @@ public class Graph extends ArrayList<Node> {
         }
         return null;
     }
-
-    
 
 }
 
@@ -1030,14 +1037,12 @@ class MazeTools extends CommandManager {
 
     }
 
-
-
     void tool2() {
 
     }
 
     class GraphExt extends Graph {
-        
+
         Graph source;
 
         public GraphExt(Graph source) {
@@ -1047,7 +1052,8 @@ class MazeTools extends CommandManager {
             xOffset = edge_size / 2;
             yOffset = edge_size / 2;
         }
-        List<Node> children( Node node) {
+
+        List<Node> children(Node node) {
             List list = new ArrayList();
 
             for (Edge edge : source.edges) {
@@ -1071,7 +1077,7 @@ class MazeTools extends CommandManager {
             return result;
         }
 
-        void recur(Node node, List<Node> visited) {            
+        void recur(Node node, List<Node> visited) {
             for (Node child : children(node)) {
                 if (!visited.contains(child)) {
                     visited.add(child);
@@ -1079,14 +1085,14 @@ class MazeTools extends CommandManager {
                 }
             }
         }
-        
-        List<Node> path(int col,int row){
+
+        List<Node> path(int col, int row) {
             Node node = source.node(col, row);
             List<Node> visited = new ArrayList<>();
             recur(node, visited);
             return visited;
         }
-        
+
         void print(List<Node> list) {
             for (Node node : list) {
                 System.out.print(node + " ");
@@ -1101,11 +1107,11 @@ class MazeTools extends CommandManager {
         Graph graph = app.mouse.graph;
 
         GraphExt g = new GraphExt(graph);
-        
-        List<Node> visited = g.path(0,0);
-        
+
+        List<Node> visited = g.path(0, 0);
+
         g.print(visited);
-        
+
         for (int i = 1; i < visited.size(); i++) {
             g.add(new Edge(visited.get(i - 1), visited.get(i)));
         }
